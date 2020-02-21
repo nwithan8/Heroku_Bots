@@ -1,0 +1,6 @@
+praw
+prawcore
+bestbuy
+tweepy
+twitter
+requests
