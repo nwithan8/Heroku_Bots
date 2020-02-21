@@ -46,8 +46,10 @@ def process(comment, text, rateLimitPlea=None, failedCount=0):
             # print(keyword)
             api_response = bb.ProductAPI.search(searchTerm=keyword)
         if api_response:
+            if type(api_response) is not list: # if just one item, turn it into a list
+                api_response = [api_response]
             reply = ""
-            for product in api_response[:5]:
+            for product in api_response[:min(len(api_response), 5)]:
                 reply += '**{name}**\n\n${price}\n\nSKU: {sku}\n\nLink: {link}\n\n'.format(name=product.name,
                                                                                            price=product.salePrice,
                                                                                            sku=product.sku,
