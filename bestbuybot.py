@@ -12,9 +12,25 @@ bb = BestBuy(os.environ.get('BEST_BUY_API_KEY'))
 mention = "u/BestBuy_Bot"
 
 reddit = praw.Reddit(client_id=os.environ.get('BBB_CLIENT_ID'), client_secret=os.environ.get('BBB_CLIENT_SECRET'),
-                     user_agent='BestBuyBot (by u/grtgbln)', username='BestBuy_Bot', password=os.environ.get('BBB_PASSWORD'))
+                     user_agent='BestBuyBot (by u/grtgbln)', username='BestBuy_Bot',
+                     password=os.environ.get('BBB_PASSWORD'))
 if not reddit.read_only:
-    print("Connected and running.")
+    print("BestBuyBot connected and running.")
+
+
+def send_private_message(comment, reply, failedCount=0):
+    try:
+        if failedCount > 2:
+            pass
+        else:
+            comment.redditor.message(subject="Replying to your comment",
+                                     message="Sorry, I wasn't able to reply in the thread. "
+                                             "Here's what I was going to say:\n{reply}".format(
+                                         reply=reply
+                                     ))
+    except Exception as e:
+        print(e)
+        send_private_message(comment, reply, failedCount=failedCount + 1)
 
 
 def process(comment, text, rateLimitPlea=None, failedCount=0):
@@ -27,35 +43,39 @@ def process(comment, text, rateLimitPlea=None, failedCount=0):
             api_response = bb.ProductAPI.search_by_upc(upc=upc)
         else:
             keyword = ' '.join(text)
-            print(keyword)
+            # print(keyword)
             api_response = bb.ProductAPI.search(searchTerm=keyword)
         if api_response:
             reply = ""
             for product in api_response[:5]:
                 reply += '**{name}**\n\n${price}\n\nSKU: {sku}\n\nLink: {link}\n\n'.format(name=product.name,
-                                                                                    price=product.salePrice,
-                                                                                    sku=product.sku,
-                                                                                    link=product.url)
+                                                                                           price=product.salePrice,
+                                                                                           sku=product.sku,
+                                                                                           link=product.url)
             reply += "\n{plea}".format(plea=(rateLimitPlea if rateLimitPlea else ""))
         else:
             reply = "I couldn't find that product, sorry."
         reply += "\n\n^(Created by u/grtgbln)"
-        print(reply)
+        # print(reply)
         try:
-            if failedCount > 3:
-                send_private_message()
+            if failedCount > 2:
+                send_private_message(comment, reply)
+                comment.mark_read()
             else:
                 comment.reply(reply)
-            comment.mark_read()
+                comment.mark_read()
         except prawcore.exceptions.Forbidden as e:
-            print("Unable to reply\nMessage:{}\nSubreddit: {}".format(comment.body, comment.subreddit.name))
+            print("Unable to reply in subreddit: {}. Trying to direct message...".format(comment.body,
+                                                                                         comment.subreddit.name))
+            send_private_message(comment, reply)
+            comment.mark_read()
         except Exception as e:
             wait_time = time_to_wait(e)
             print("Couldn't send reply. Waiting {} second(s) to try again...".format(wait_time))
             time.sleep(int(wait_time))
             process(comment=comment, text=text, rateLimitPlea="\n^(I was rate-limited while replying to you. "
                                                               "Please remember to upvote me so I don't get delayed in "
-                                                              "the future.)")
+                                                              "the future.)", failedCount=failedCount + 1)
 
 
 def parse_message(message):
@@ -73,7 +93,7 @@ def time_to_wait(errorMessage):
 
 
 def main():
-    print("Checking mentions...")
+    # print("Checking mentions...")
     for item in reddit.inbox.unread():
         if mention in item.body:
             text = item.body

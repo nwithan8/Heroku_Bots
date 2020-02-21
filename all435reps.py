@@ -105,8 +105,8 @@ if __name__ == '__main__':
     stream = Stream(auth, l)
     while True:
         try:
-            print("Connection started.")
+            print("all435reps connection started.")
             stream.filter(follow=USER_IDS)
         except (ProtocolError, AttributeError):  # Force restart if error out
-            print("Connection timed out. Restarting...")
+            print("all435 reps connection timed out. Restarting...")
             continue
