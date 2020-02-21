@@ -1,1 +1,1 @@
-worker: run_all.sh
+worker: ./run_all.sh
