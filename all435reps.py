@@ -50,18 +50,22 @@ print("Names and accounts imported. Now monitoring...")
 def from_creator(status):
     if hasattr(status, 'retweeted_status'):
         return False
-    elif status.in_reply_to_status_id != None:
+    elif status.in_reply_to_status_id is not None:
         return False
-    elif status.in_reply_to_screen_name != None:
+    elif status.in_reply_to_screen_name is not None:
         return False
-    elif status.in_reply_to_user_id != None:
+    elif status.in_reply_to_user_id is not None:
         return False
     else:  # If not retweet and not in reply to another tweet
         return True
 
 
 def retweet(status):
-    twitter.retweet(status.id)
+    try:
+        twitter.retweet(status.id)
+    except Exception as e:
+        print(e)
+        pass
 
 
 def archive(status):

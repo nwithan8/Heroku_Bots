@@ -11,6 +11,8 @@ bb = BestBuy(os.environ.get('BEST_BUY_API_KEY'))
 
 mention = "u/BestBuy_Bot"
 
+ERROR_VERBOSE = True
+
 reddit = praw.Reddit(client_id=os.environ.get('BBB_CLIENT_ID'), client_secret=os.environ.get('BBB_CLIENT_SECRET'),
                      user_agent='BestBuyBot (by u/grtgbln)', username='BestBuy_Bot',
                      password=os.environ.get('BBB_PASSWORD'))
@@ -21,7 +23,7 @@ if not reddit.read_only:
 def send_private_message(comment, reply, failedCount=0):
     try:
         if failedCount > 2:
-            pass
+            pass  # give up after unable to reply in thread three times and unable to DM three times.
         else:
             comment.redditor.message(subject="Replying to your comment",
                                      message="Sorry, I wasn't able to reply in the thread. "
@@ -29,7 +31,11 @@ def send_private_message(comment, reply, failedCount=0):
                                          reply=reply
                                      ))
     except Exception as e:
-        print(e)
+        if ERROR_VERBOSE:
+            print(e)
+        wait_time = time_to_wait(e)
+        print("Couldn't send direct message. Waiting {} second(s) to try again...".format(wait_time))
+        time.sleep(int(wait_time))
         send_private_message(comment, reply, failedCount=failedCount + 1)
 
 
@@ -72,6 +78,8 @@ def process(comment, text, rateLimitPlea=None, failedCount=0):
             send_private_message(comment, reply)
             comment.mark_read()
         except Exception as e:
+            if ERROR_VERBOSE:
+                print(e)
             wait_time = time_to_wait(e)
             print("Couldn't send reply. Waiting {} second(s) to try again...".format(wait_time))
             time.sleep(int(wait_time))
